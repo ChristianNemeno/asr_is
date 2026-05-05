@@ -1,0 +1,192 @@
+# ASR Evaluation Metrics (KPIs)
+
+This document describes the key performance indicators (KPIs) to report when evaluating fine-tuned ASR models on Cebuano.
+
+## Primary Metrics
+
+### 1. Word Error Rate (WER) — *The Standard ASR Metric*
+
+WER measures the minimum number of word-level edits (substitutions, deletions, insertions) needed to transform the predicted text into the reference text.
+
+```
+WER = (S + D + I) / N
+```
+
+Where:
+- **S** = Substitutions (word replaced)
+- **D** = Deletions (word missing from prediction)
+- **I** = Insertions (extra word in prediction)
+- **N** = Number of words in the **reference** text
+
+**Range**: 0% (perfect) to >100% (very poor — more errors than words)
+
+**Usage in code**:
+```python
+import evaluate
+wer = evaluate.load("wer")
+wer_score = 100 * wer.compute(predictions=["predicted text"], references=["reference text"])
+```
+
+Alternative: `jiwer` library
+```python
+from jiwer import wer
+wer_score = wer(reference, hypothesis)
+```
+
+### 2. Character Error Rate (CER)
+
+Same as WER but operates at character level. Useful for:
+- Languages where word boundaries are ambiguous
+- Agglutinative languages (like Cebuano) where meaning can be packed into word affixes
+- Diagnosing whether errors are at word-level or character-level
+
+```
+CER = (S_char + D_char + I_char) / N_char
+```
+
+**Usage**:
+```python
+import evaluate
+cer = evaluate.load("cer")
+cer_score = 100 * cer.compute(predictions=["text"], references=["text"])
+```
+
+## Secondary Metrics
+
+### 3. Match Error Rate (MER)
+
+MER = (S + D + I) / (S + D + C), where C = correct words.
+Measures error relative to the number of matches rather than reference length.
+
+### 4. Word Information Lost (WIL)
+
+Accounts for alignment between hypothesis and reference — balances precision and recall.
+Lower is better. Range: 0 (no information lost) to 1 (all information lost).
+
+### 5. Word Information Preserved (WIP)
+
+Complement of WIL: WIP = 1 - WIL.
+Higher is better. Range: 0 to 1.
+
+**Usage** (jiwer):
+```python
+from jiwer import compute_measures
+
+measures = compute_measures(reference, hypothesis)
+print(f"WER: {measures['wer']}")
+print(f"MER: {measures['mer']}")
+print(f"WIL: {measures['wil']}")
+print(f"WIP: {measures['wip']}")
+```
+
+## Speed/Performance Metrics
+
+### 6. Real-Time Factor (RTF)
+
+Measures inference speed. Critical for deployment.
+
+```
+RTF = Processing Time / Audio Duration
+```
+
+- **RTF < 1**: Faster than real-time (can process live audio)
+- **RTF = 0.01**: 100x real-time (very fast)
+- **RTF > 1**: Slower than real-time (not suitable for live use)
+
+```python
+import time
+
+start = time.time()
+transcription = model.transcribe(audio)
+elapsed = time.time() - start
+
+rtf = elapsed / audio_duration_seconds
+```
+
+### 7. Training Time
+
+- Total wall-clock time
+- GPU hours consumed
+- Steps/epochs to convergence
+
+### 8. Model Size
+
+- Number of parameters
+- Disk size (MB/GB)
+- GPU memory required for inference (VRAM)
+
+## Training Monitoring Metrics
+
+### 9. Training/Validation Loss
+
+- **Whisper**: Cross-entropy loss (lower is better)
+- **Wav2Vec2/XLS-R**: CTC loss (lower is better)
+
+Monitor for:
+- **Convergence**: Loss should decrease and plateau
+- **Overfitting**: Training loss decreases but validation loss increases
+- **Underfitting**: Both losses are high and not decreasing
+
+### 10. Learning Curves
+
+Plot WER/CER vs. training steps/epochs:
+- Helps identify optimal stopping point
+- Shows if model is still improving
+
+## Comparison Framework
+
+When reporting results, present a table like:
+
+| Model | WER (%) | CER (%) | RTF | Parameters | Training Time |
+|-------|---------|---------|-----|------------|---------------|
+| Whisper-small (zero-shot) | ? | ? | ? | 244M | 0h |
+| Whisper-small (fine-tuned) | ? | ? | ? | 244M | ?h |
+| Whisper-medium (fine-tuned) | ? | ? | ? | 769M | ?h |
+| XLS-R 300M (fine-tuned) | ? | ? | ? | 317M | ?h |
+| XLS-R 1B (fine-tuned) | ? | ? | ? | 965M | ?h |
+
+## Interpreting Results for Cebuano
+
+### What "Good" Looks Like
+
+- **WER < 5%**: State-of-the-art (unlikely with 108h of data)
+- **WER 5-15%**: Very good, production-ready
+- **WER 15-30%**: Usable, acceptable for low-resource
+- **WER 30-50%**: Baseline improvement, needs more data/tuning
+- **WER > 50%**: Not useful, fundamental issues
+
+### Cebuano-Specific Challenges That May Increase WER
+
+1. **Agglutinative morphology**: Complex word forms may confuse the model
+2. **Code-switching**: Cebuano speakers often mix in English/Tagalog words
+3. **Regional accents**: Speakers from different regions (Cebu vs Mindanao vs Bohol)
+4. **Limited training data**: 108h is low-resource territory
+5. **Spelling variation**: Cebuano has less standardized orthography than English
+
+### Recommended Reporting
+
+For your report, include:
+
+1. **Table**: WER/CER for baseline vs fine-tuned models
+2. **Bar chart**: WER comparison across models
+3. **Learning curves**: WER vs training steps per model
+4. **Sample transcriptions**: Side-by-side comparison of predictions vs ground truth
+5. **Error analysis**: Common error patterns (substitutions, insertions, deletions breakdown)
+
+## Computing Breakdown of WER
+
+```python
+from jiwer import wer, process_words
+
+output = process_words(reference="hello world", hypothesis="hello word")
+
+print(f"Substitutions: {output.substitutions}")
+print(f"Deletions: {output.deletions}")
+print(f"Insertions: {output.insertions}")
+print(f"Hits: {output.hits}")
+```
+
+This breakdown helps diagnose whether the model tends to:
+- **Substitute**: Wrong word choices → vocabulary/tokenizer issues
+- **Delete**: Missing words → poor acoustic modeling
+- **Insert**: Extra words → hallucination / language model issues
