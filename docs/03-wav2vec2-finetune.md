@@ -1,4 +1,8 @@
-# Fine-Tuning Wav2Vec2 / XLS-R for Cebuano ASR
+# Fine-Tuning Wav2Vec2 / XLS-R for Cebuano ASR — DEPRECATED
+
+> **DEPRECATED — This approach is no longer pursued.** Wav2Vec2/XLS-R training was dropped in favor of Whisper-only due to time and resource constraints. The `train/train_wav2vec2.py` and `train/config.py` modules were never implemented. The corresponding Colab script (`colab_xlsr.py`) was removed.
+>
+> This document is kept for reference only.
 
 > Based on: [Fine-Tune XLS-R for Multi-Lingual ASR](https://huggingface.co/blog/fine-tune-xlsr-wav2vec2)
 > and the official [Hugging Face ASR guide](https://huggingface.co/docs/transformers/tasks/asr)

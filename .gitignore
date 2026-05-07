@@ -1,4 +1,22 @@
-# Add this to your .gitignore file
+# Python
 env/
 venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Compiled
 *.so/
+
+# Frontend
+node_modules/
+dist/
+
+# Secrets
+.env
+
+# Training outputs
+train/output/
+
+# Inspected samples
+fleurs_samples/

@@ -1,7 +1,31 @@
-# Fine-Tuning Whisper for Cebuano ASR
+# Fine-Tuning Whisper for Filipino ASR
 
 > Based on: [Fine-Tune Whisper For Multilingual ASR with Transformers](https://huggingface.co/blog/fine-tune-whisper)
 > and the official [Hugging Face ASR guide](https://huggingface.co/docs/transformers/tasks/asr)
+
+## Quick Start (Project Scripts)
+
+The project includes ready-to-run scripts. See `AGENTS.md` for full commands.
+
+```bash
+# Resume from checkpoint (step 2500/5000, WER 19.67%)
+python train/train_whisper.py --resume checkpoint/checkpoint-2500
+
+# Train from scratch
+python train/train_whisper.py
+
+# Compare baseline vs fine-tuned
+python train/compare_models.py
+python train/compare_models.py --model train/output/whisper
+```
+
+**Important**: `train/train_whisper.py` uses the **Filipino Speech Corpus + FLEURS** dataset (Tagalog + Cebuano), not the Cebuano Speech Dataset.
+
+**Checkpoint**: A partially-trained model at step 2500/5000 (WER 19.67%, CER 7.98%) lives in `checkpoint/checkpoint-2500/`. It was produced by `colab_whisper.py` on Google Colab.
+
+**Version pin**: The checkpoint was trained with `transformers==5.0.0`. Newer versions add a `proj_out` layer to Whisper that the checkpoint lacks. Install: `pip install transformers==5.0.0`.
+
+---
 
 ## Architecture Overview
 
@@ -22,114 +46,84 @@ Training uses **cross-entropy loss** (not CTC).
 | medium | 769M | ~3GB | `openai/whisper-medium` |
 | large-v3 | 1.55B | ~6GB | `openai/whisper-large-v3` |
 
-**Recommendation for Cebuano (108h)**: Start with `whisper-small` — good balance of quality and resource usage.
+This project uses `whisper-small`.
 
-## Step-by-Step Fine-Tuning
+## Reference Implementation
+
+The step-by-step below mirrors the logic in `train/train_whisper.py`. It is preserved as a reference for understanding the training pipeline.
 
 ### 1. Install Dependencies
 
 ```bash
-pip install transformers datasets evaluate jiwer soundfile librosa accelerate
-pip install gradio  # optional: for demo
+pip install -r train/requirements.txt
 ```
 
-### 2. Load Dataset
+### 2. Load Dataset (FSC + FLEURS)
+
+The training script loads two datasets and merges them:
 
 ```python
-from datasets import load_dataset, Audio, DatasetDict
+from datasets import load_dataset, Audio, DatasetDict, concatenate_datasets
 
-ds = load_dataset("Speech-data/Cebuano-Speech-Dataset")
-ds = ds.cast_column("audio", Audio(sampling_rate=16000))
+# Filipino Speech Corpus (~50h Tagalog)
+fsc = load_dataset("sapinsapin/filipinospeechcorpus")
+fsc = fsc.cast_column("audio", Audio(sampling_rate=16000))
+fsc = fsc.filter(lambda x: x["num_words"] >= 2 and x["duration"] >= 0.8)
 
-# Rename 'audio_text' to 'sentence' for consistency
-ds = ds.rename_column("audio_text", "sentence")
+# FLEURS (fil_ph + ceb_ph, ~20h)
+for lang in ["fil_ph", "ceb_ph"]:
+    fl = load_dataset("google/fleurs", lang, trust_remote_code=True)
+    fl = fl.cast_column("audio", Audio(sampling_rate=16000))
+    datasets.append(fl)
 
-# Split
-train_test = ds["train"].train_test_split(test_size=0.2, seed=42)
-test_valid = train_test["test"].train_test_split(test_size=0.5, seed=42)
-
-dataset = DatasetDict({
-    "train": train_test["train"],
-    "validation": test_valid["train"],
-    "test": test_valid["test"],
+# Concatenate per split
+ds = DatasetDict({
+    s: concatenate_datasets([d[s] for d in datasets])
+    for s in ["train", "validation", "test"]
 })
 ```
 
 ### 3. Load Whisper Processor
 
-The `WhisperProcessor` bundles the feature extractor and tokenizer:
-
 ```python
 from transformers import WhisperProcessor
 
-processor = WhisperProcessor.from_pretrained(
-    "openai/whisper-small",
-    language="Cebuano",
-    task="transcribe"
-)
+processor = WhisperProcessor.from_pretrained("openai/whisper-small")
 ```
-
-> **Note**: If Whisper doesn't have a "Cebuano" language token, use `language=None` and let it auto-detect, or check available tokens with `processor.tokenizer.get_vocab()`.
 
 ### 4. Preprocess Data
 
-Whisper expects:
-- Audio padded/truncated to **30 seconds**
-- Transcriptions encoded with **language + task prefix tokens**
-
 ```python
-def prepare_dataset(batch):
+def prep(batch):
     audio = batch["audio"]
-
-    # Extract log-Mel spectrogram features
     batch["input_features"] = processor.feature_extractor(
         audio["array"], sampling_rate=audio["sampling_rate"]
     ).input_features[0]
-
-    # Encode target text to label ids
-    batch["labels"] = processor.tokenizer(batch["sentence"]).input_ids
+    batch["labels"] = processor.tokenizer(batch["text"]).input_ids
     return batch
 
-dataset = dataset.map(prepare_dataset, remove_columns=dataset["train"].column_names)
+ds = ds.map(prep, remove_columns=ds["train"].column_names)
 ```
 
 ### 5. Data Collator
 
 ```python
-import torch
 from dataclasses import dataclass
-from typing import Any, Dict, List, Union
+from typing import Any
 
 @dataclass
-class DataCollatorSpeechSeq2SeqWithPadding:
+class DataCollator:
     processor: Any
-    decoder_start_token_id: int
-
-    def __call__(self, features: List[Dict[str, Union[List[int], torch.Tensor]]]) -> Dict[str, torch.Tensor]:
-        # Audio inputs: just convert to tensors (already padded to 30s)
+    def __call__(self, features):
         input_features = [{"input_features": f["input_features"]} for f in features]
         batch = self.processor.feature_extractor.pad(input_features, return_tensors="pt")
-
-        # Text labels: pad to max length in batch
         label_features = [{"input_ids": f["labels"]} for f in features]
         labels_batch = self.processor.tokenizer.pad(label_features, return_tensors="pt")
-
-        # Replace padding with -100 (ignored in loss)
-        labels = labels_batch["input_ids"].masked_fill(
-            labels_batch.attention_mask.ne(1), -100
-        )
-
-        # Remove BOS token if appended (it gets added during generation)
-        if (labels[:, 0] == self.decoder_start_token_id).all().cpu().item():
+        labels = labels_batch["input_ids"].masked_fill(labels_batch.attention_mask.ne(1), -100)
+        if (labels[:, 0] == self.processor.tokenizer.bos_token_id).all().cpu().item():
             labels = labels[:, 1:]
-
         batch["labels"] = labels
         return batch
-
-data_collator = DataCollatorSpeechSeq2SeqWithPadding(
-    processor=processor,
-    decoder_start_token_id=processor.tokenizer.convert_tokens_to_ids("<|startoftranscript|>"),
-)
 ```
 
 ### 6. Load Model
@@ -138,64 +132,58 @@ data_collator = DataCollatorSpeechSeq2SeqWithPadding(
 from transformers import WhisperForConditionalGeneration
 
 model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-small")
-
-# Optional: Force language and task tokens
-model.generation_config.language = "cebuano"  # or auto-detect
+model.generation_config.language = None
 model.generation_config.task = "transcribe"
 model.generation_config.forced_decoder_ids = None
 ```
 
-### 7. Evaluation Metrics
+### 7. Metrics
 
 ```python
 import evaluate
+import numpy as np
 
-wer_metric = evaluate.load("wer")
-cer_metric = evaluate.load("cer")
+wer_m = evaluate.load("wer")
+cer_m = evaluate.load("cer")
 
 def compute_metrics(pred):
-    pred_ids = pred.predictions
-    label_ids = pred.label_ids
-
-    # Replace -100 with pad_token_id
-    label_ids[label_ids == -100] = processor.tokenizer.pad_token_id
-
-    # Decode predictions and references
-    pred_str = processor.tokenizer.batch_decode(pred_ids, skip_special_tokens=True)
-    label_str = processor.tokenizer.batch_decode(label_ids, skip_special_tokens=True)
-
-    wer = 100 * wer_metric.compute(predictions=pred_str, references=label_str)
-    cer = 100 * cer_metric.compute(predictions=pred_str, references=label_str)
-
-    return {"wer": wer, "cer": cer}
+    pid = pred.predictions
+    lid = np.where(pred.label_ids != -100, pred.label_ids, processor.tokenizer.pad_token_id)
+    ps = processor.tokenizer.batch_decode(pid, skip_special_tokens=True)
+    ls = processor.tokenizer.batch_decode(lid, skip_special_tokens=True)
+    return {
+        "wer": 100 * wer_m.compute(predictions=ps, references=ls),
+        "cer": 100 * cer_m.compute(predictions=ps, references=ls),
+    }
 ```
 
-### 8. Training Arguments
+### 8. Training Arguments (as used in this project)
 
 ```python
 from transformers import Seq2SeqTrainingArguments
 
-training_args = Seq2SeqTrainingArguments(
-    output_dir="./whisper-small-cebuano",
-    per_device_train_batch_size=16,
-    gradient_accumulation_steps=1,
+args = Seq2SeqTrainingArguments(
+    output_dir="train/output/whisper/checkpoints",
+    per_device_train_batch_size=8,
+    gradient_accumulation_steps=2,
     learning_rate=1e-5,
     warmup_steps=500,
     max_steps=5000,
     gradient_checkpointing=True,
-    fp16=True,                       # use bf16=True for Ampere+ GPUs
+    fp16=True,
     eval_strategy="steps",
     per_device_eval_batch_size=8,
     predict_with_generate=True,
     generation_max_length=225,
-    save_steps=1000,
-    eval_steps=1000,
-    logging_steps=25,
+    save_steps=500,
+    eval_steps=500,
+    logging_steps=50,
     load_best_model_at_end=True,
     metric_for_best_model="wer",
     greater_is_better=False,
-    push_to_hub=False,               # set True to push to HF Hub
     report_to=["tensorboard"],
+    save_total_limit=3,
+    seed=42,
 )
 ```
 
@@ -205,71 +193,44 @@ training_args = Seq2SeqTrainingArguments(
 from transformers import Seq2SeqTrainer
 
 trainer = Seq2SeqTrainer(
-    args=training_args,
+    args=args,
     model=model,
-    train_dataset=dataset["train"],
-    eval_dataset=dataset["validation"],
-    data_collator=data_collator,
+    train_dataset=ds["train"],
+    eval_dataset=ds["validation"],
+    data_collator=DataCollator(processor),
     compute_metrics=compute_metrics,
-    tokenizer=processor.feature_extractor,
+    processing_class=processor.feature_extractor,
 )
 
-trainer.train()
+# Resume from checkpoint
+trainer.train(resume_from_checkpoint="checkpoint/checkpoint-2500")
 ```
 
-### 10. Evaluate on Test Set
+### 10. Save & Evaluate
 
 ```python
-results = trainer.evaluate(dataset["test"])
-print(f"Test WER: {results['eval_wer']:.2f}%")
-print(f"Test CER: {results['eval_cer']:.2f}%")
+model.save_pretrained("train/output/whisper")
+processor.save_pretrained("train/output/whisper")
+
+res = trainer.evaluate(ds["test"])
+print(f"Test WER: {res['eval_wer']:.2f}%  CER: {res['eval_cer']:.2f}%")
 ```
 
-## Using with WhisperX Pipeline
+## Expected Results (FSC + FLEURS, 5000 steps)
 
-After fine-tuning Whisper, integrate with WhisperX for word-level timestamps:
+| Model | WER | CER |
+|-------|-----|-----|
+| Whisper-small (zero-shot) | TBD | TBD |
+| Whisper-small (step 2500) | 19.67% | 7.98% |
+| Whisper-small (step 5000) | TBD | TBD |
 
-```python
-import whisperx
+## Hyperparameter Reference
 
-device = "cuda"
-audio_file = "path/to/audio.wav"
-
-# Load YOUR fine-tuned Whisper model into WhisperX
-model = whisperx.load_model(
-    "path/to/whisper-small-cebuano",  # local path
-    device=device,
-    compute_type="float16",
-)
-
-audio = whisperx.load_audio(audio_file)
-result = model.transcribe(audio, batch_size=16)
-
-# Align with Wav2Vec2 (requires language-specific alignment model)
-# For Cebuano, you may need to find or train a phoneme alignment model
-# model_a, metadata = whisperx.load_align_model(
-#     language_code="ceb",  # ISO 639-3 code
-#     device=device,
-# )
-# result = whisperx.align(result["segments"], model_a, metadata, audio, device)
-
-print(result["segments"])
-```
-
-## Hyperparameter Tuning Suggestions
-
-| Parameter | Starting Value | Notes |
-|-----------|---------------|-------|
+| Parameter | Value | Notes |
+|-----------|-------|-------|
 | Learning rate | 1e-5 | Reduce to 5e-6 if unstable |
-| Batch size | 16 | Reduce if OOM, increase grad_accum |
-| Warmup steps | 500 | ~10% of total steps |
-| Max steps | 5000 | Adjust based on dataset size |
-| Dropout | Default | Increase to 0.1 if overfitting |
-| Gradient checkpointing | True | Saves memory |
-
-## Expected Results
-
-For a low-resource language like Cebuano with 108h of data:
-- **Baseline Whisper-small** (zero-shot): ~40-80% WER (depends on pre-training coverage)
-- **After fine-tuning**: Expect ~15-40% WER
-- Best results with `whisper-medium` or `large-v3` + more data
+| Batch size | 8 | With grad_accum=2 → effective 16 |
+| Warmup steps | 500 | 10% of max_steps |
+| Max steps | 5000 | Effective 3 epochs on FSC+FLEURS |
+| Mixed precision | fp16 | Disabled automatically on CPU |
+| Gradient checkpointing | True | Saves VRAM |
