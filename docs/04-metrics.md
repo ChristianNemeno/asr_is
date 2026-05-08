@@ -141,9 +141,8 @@ When reporting results, present a table like:
 |-------|---------|---------|-----|------------|---------------|
 | Whisper-small (zero-shot) | ? | ? | ? | 244M | 0h |
 | Whisper-small (fine-tuned) | ? | ? | ? | 244M | ?h |
-| Whisper-medium (fine-tuned) | ? | ? | ? | 769M | ?h |
-| XLS-R 300M (fine-tuned) | ? | ? | ? | 317M | ?h |
-| XLS-R 1B (fine-tuned) | ? | ? | ? | 965M | ?h |
+
+> Wav2Vec2/XLS-R training was deprecated. Only Whisper results are relevant.
 
 ## Interpreting Results for Cebuano
 

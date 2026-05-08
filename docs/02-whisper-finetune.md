@@ -1,4 +1,4 @@
-# Fine-Tuning Whisper for Filipino ASR
+# Fine-Tuning Whisper for Filipino & Cebuano ASR
 
 > Based on: [Fine-Tune Whisper For Multilingual ASR with Transformers](https://huggingface.co/blog/fine-tune-whisper)
 > and the official [Hugging Face ASR guide](https://huggingface.co/docs/transformers/tasks/asr)
@@ -21,9 +21,9 @@ python train/compare_models.py --model train/output/whisper
 
 **Important**: `train/train_whisper.py` uses the **Filipino Speech Corpus + FLEURS** dataset (Tagalog + Cebuano), not the Cebuano Speech Dataset.
 
-**Checkpoint**: A partially-trained model at step 2500/5000 (WER 19.67%, CER 7.98%) lives in `checkpoint/checkpoint-2500/`. It was produced by `colab_whisper.py` on Google Colab.
+**Note**: A Colab checkpoint at `checkpoint/checkpoint-2500/` was produced by `colab_whisper.py`. If that directory no longer exists, train from scratch with `python train/train_whisper.py --force-scratch`.
 
-**Version pin**: The checkpoint was trained with `transformers==5.0.0`. Newer versions add a `proj_out` layer to Whisper that the checkpoint lacks. Install: `pip install transformers==5.0.0`.
+**Version pin**: The checkpoint was trained with `transformers==5.0.0`. Newer versions (5.8+) add a `proj_out` layer to Whisper that the checkpoint lacks, causing a shape mismatch. The `requirements.txt` files say `>=4.40.0` but you must pin to `5.0.0`.
 
 ---
 
@@ -170,7 +170,7 @@ args = Seq2SeqTrainingArguments(
     warmup_steps=500,
     max_steps=5000,
     gradient_checkpointing=True,
-    fp16=True,
+    fp16=True,                        # auto-disabled on CPU
     eval_strategy="steps",
     per_device_eval_batch_size=8,
     predict_with_generate=True,
@@ -182,10 +182,12 @@ args = Seq2SeqTrainingArguments(
     metric_for_best_model="wer",
     greater_is_better=False,
     report_to=["tensorboard"],
-    save_total_limit=3,
+    save_total_limit=None,            # all checkpoints preserved
     seed=42,
 )
 ```
+
+> **Config is hardcoded** in `train_whisper.py` (lines ~68–76 and ~195–217), not CLI flags. Edit the script to change hyperparameters.
 
 ### 9. Train
 
@@ -221,8 +223,9 @@ print(f"Test WER: {res['eval_wer']:.2f}%  CER: {res['eval_cer']:.2f}%")
 | Model | WER | CER |
 |-------|-----|-----|
 | Whisper-small (zero-shot) | TBD | TBD |
-| Whisper-small (step 2500) | 19.67% | 7.98% |
-| Whisper-small (step 5000) | TBD | TBD |
+| Whisper-small (fine-tuned) | TBD | TBD |
+
+> Run `python train/compare_models.py --plot` to compute actual comparison.
 
 ## Hyperparameter Reference
 

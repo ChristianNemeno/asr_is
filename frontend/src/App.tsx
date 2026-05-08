@@ -1,100 +1,77 @@
-import { useState } from 'react'
-import Transcriber from './components/Transcriber'
+import { useState, useEffect } from 'react'
+import Hero from './components/Hero'
+import ModelOverview from './components/ModelOverview'
+import DatasetBrowser from './components/DatasetBrowser'
+import Hyperparams from './components/Hyperparams'
+import LiveComparison from './components/LiveComparison'
+import TrainingCurves from './components/TrainingCurves'
+import ErrorAnalysis from './components/ErrorAnalysis'
 
-type ModelType = 'whisper' | 'wav2vec2'
+interface Models {
+  baseline: { id: string; parameters: number; architecture: string; task: string }
+  finetuned: { id: string; test_wer: number; test_cer: number; train_steps: number; dataset: string; per_language: Record<string, { mean_wer: number; n: number }> }
+}
 
-interface Result {
-  text: string
-  model_type: string
-  metrics?: { wer: number; cer: number }
-  error_breakdown?: {
-    substitutions: number
-    deletions: number
-    insertions: number
-    hits: number
-  }
+interface HyperparamsData {
+  base_model: string; parameters: number; per_device_train_batch_size: number
+  gradient_accumulation_steps: number; effective_batch_size: number
+  learning_rate: number; warmup_steps: number; max_steps: number
+  gradient_checkpointing: boolean; mixed_precision: string
+  generation_max_length: number; seed: number
+}
+
+interface Metrics {
+  test_wer: number; test_cer: number; train_steps: number
+  per_language: Record<string, { mean_wer: number; n: number }>
+  error_breakdown: { substitutions: number; deletions: number; insertions: number; hits: number }
+  n_samples: number
+}
+
+interface SampleItem {
+  filename: string; language: string; language_code: string
+  label: string; duration_sec: number; url: string
+}
+
+interface Transcription {
+  rank: number; wer: number; cer: number; language: string
+  reference: string; prediction: string
 }
 
 function App() {
-  const [model, setModel] = useState<ModelType>('whisper')
-  const [result, setResult] = useState<Result | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [reference, setReference] = useState('')
+  const [models, setModels] = useState<Models | null>(null)
+  const [hyperparams, setHyperparams] = useState<HyperparamsData | null>(null)
+  const [metrics, setMetrics] = useState<Metrics | null>(null)
+  const [samples, setSamples] = useState<SampleItem[]>([])
+  const [transcriptions, setTranscriptions] = useState<Transcription[]>([])
+
+  useEffect(() => {
+    async function fetchAll() {
+      const [mRes, hRes, metRes, _cRes, sRes, tRes] = await Promise.all([
+        fetch('/api/training/models').then(r => r.json()),
+        fetch('/api/training/hyperparams').then(r => r.json()),
+        fetch('/api/training/metrics').then(r => r.json()),
+        fetch('/api/training/curves').then(r => r.json()),
+        fetch('/api/samples').then(r => r.json()),
+        fetch('/api/training/samples').then(r => r.json()),
+      ])
+      setModels(mRes)
+      setHyperparams(hRes)
+      setMetrics(metRes)
+      setSamples(Array.isArray(sRes) ? sRes : [])
+      setTranscriptions(Array.isArray(tRes) ? tRes : [])
+    }
+    fetchAll()
+  }, [])
 
   return (
     <div className="app">
-      <header className="header">
-        <h1>Cebuano ASR</h1>
-        <p>Fine-tuned Whisper & Wav2Vec2 for Cebuano Speech Recognition</p>
-      </header>
-
-      <div className="model-selector">
-        <button
-          className={model === 'whisper' ? 'active' : ''}
-          onClick={() => setModel('whisper')}
-        >
-          Whisper-small
-        </button>
-        <button
-          className={model === 'wav2vec2' ? 'active' : ''}
-          onClick={() => setModel('wav2vec2')}
-        >
-          XLS-R 300M
-        </button>
-      </div>
-
-      <Transcriber
-        model={model}
-        onResult={setResult}
-        loading={loading}
-        setLoading={setLoading}
-      />
-
-      {result && (
-        <div className="result">
-          <h3>Transcription</h3>
-          <div className="transcription-box">{result.text}</div>
-
-          <div className="reference-input">
-            <label>Reference text (optional — for WER/CER):</label>
-            <textarea
-              value={reference}
-              onChange={(e) => setReference(e.target.value)}
-              placeholder="Enter ground truth transcription..."
-              rows={3}
-            />
-          </div>
-
-          {result.metrics && (
-            <div className="metrics">
-              <div className="metric-card">
-                <span className="metric-value">{result.metrics.wer}%</span>
-                <span className="metric-label">WER</span>
-              </div>
-              <div className="metric-card">
-                <span className="metric-value">{result.metrics.cer}%</span>
-                <span className="metric-label">CER</span>
-              </div>
-              {result.error_breakdown && (
-                <>
-                  <div className="metric-card">
-                    <span className="metric-value">{result.error_breakdown.substitutions}</span>
-                    <span className="metric-label">Substitutions</span>
-                  </div>
-                  <div className="metric-card">
-                    <span className="metric-value">{result.error_breakdown.deletions}</span>
-                    <span className="metric-label">Deletions</span>
-                  </div>
-                  <div className="metric-card">
-                    <span className="metric-value">{result.error_breakdown.insertions}</span>
-                    <span className="metric-label">Insertions</span>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      <Hero models={models} />
+      <ModelOverview />
+      <DatasetBrowser samples={samples} />
+      <Hyperparams hyperparams={hyperparams} />
+      <LiveComparison />
+      <TrainingCurves />
+      <ErrorAnalysis metrics={metrics} transcriptions={transcriptions} />
     </div>
   )
 }

@@ -20,3 +20,5 @@ train/output/
 
 # Inspected samples
 fleurs_samples/
+
+.opencode/

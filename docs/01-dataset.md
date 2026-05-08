@@ -48,7 +48,7 @@ def norm(text):
 
 ## Secondary Dataset: Cebuano Speech Dataset
 
-Used by `download.py` and referenced by the backend API. **Not used for Whisper training.**
+Available for reference but **not used for Whisper training.** The `download.py` script that fetched it has been removed.
 
 ### Source
 
@@ -94,8 +94,11 @@ Expected columns: `AudioID`, `audio_text` (transcription), `gender`, `duration`,
 - Speaker diversity limited to 4 Philippine regions
 - Recording quality may vary across samples
 
-## Download Script
+## Loading the Dataset
 
-```bash
-python download.py  # Downloads Cebuano Speech Dataset to ~/.cache/huggingface/datasets/
+```python
+from datasets import load_dataset, Audio
+
+ds = load_dataset("Speech-data/Cebuano-Speech-Dataset")
+ds = ds.cast_column("audio", Audio(sampling_rate=16000))
 ```

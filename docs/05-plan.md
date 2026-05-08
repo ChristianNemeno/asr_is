@@ -32,9 +32,8 @@ See `docs/01-dataset.md` for full details.
 ### Phase 1: Environment & Data Setup ✓
 
 - [x] Set up Python environment (`env/`, Python 3.12)
-- [x] Identify datasets: FSC + FLEURS for training, Cebuano Speech Dataset for evaluation
+- [x] Identify datasets: FSC + FLEURS for training (Cebuano Speech Dataset available but not used)
 - [x] Text normalization, 16kHz resampling, train/validation/test split
-- [x] `download.py` for Cebuano Speech Dataset
 
 ### Phase 2: Initial Training (Colab) ✓
 
@@ -51,6 +50,7 @@ See `docs/01-dataset.md` for full details.
 - [x] `train/data_exploration.py` — dataset visualization before training
 - [x] `train/visualize.py` — training curves from log history / CSV
 - [x] `train/error_analysis.py` — per-sample error breakdown and visualizations
+- [x] `train/visualize_splits.py` — dataset split diagrams (hardcoded approximate counts)
 - [x] Pinned `transformers==5.0.0` for checkpoint compatibility
 - [x] TensorBoard integration (`report_to=["tensorboard"]`)
 - [x] `matplotlib` and `seaborn` added for publication-quality plots
@@ -78,7 +78,7 @@ See `docs/01-dataset.md` for full details.
 
 ```
 asr_is/
-├── backend/                          # FastAPI inference API
+├── backend/                          # FastAPI API serving training docs, model info, visualizations
 │   ├── main.py
 │   ├── routes/transcribe.py
 │   └── services/
@@ -100,11 +100,12 @@ asr_is/
 │       │       ├── checkpoint-500/
 │       │       ├── checkpoint-1000/
 │       │       └── ... (all preserved)
-│       └── plots/                    # Generated visualizations
-│           ├── data_exploration/
-│           ├── training_curves/
-│           ├── error_analysis/
-│           └── model_comparison/
+│   └── plots/                    # Generated visualizations
+│       ├── data_exploration/
+│       ├── training_curves/
+│       ├── error_analysis/
+│       ├── model_comparison/
+│       └── splits/
 ├── docs/
 │   ├── 01-dataset.md
 │   ├── 02-whisper-finetune.md
@@ -112,7 +113,6 @@ asr_is/
 │   ├── 04-metrics.md
 │   └── 05-plan.md
 ├── colab_whisper.py                  # Original Colab script (superseded)
-├── download.py                       # Cebuano Speech Dataset downloader
 └── env/                              # Python 3.12 venv
 ```
 
@@ -132,6 +132,7 @@ tensorboard --logdir train/output/whisper/checkpoints/runs
 python train/visualize.py
 python train/error_analysis.py
 python train/compare_models.py --plot
+python train/visualize_splits.py
 ```
 
 ## GPU Requirements

@@ -1,0 +1,13 @@
+env/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+node_modules/
+dist/
+.git/
+.opencode/
+docs/
+changes/
+*.md
+.env
