@@ -1,3 +1,5 @@
+import { motion } from 'motion/react'
+
 interface HyperparamsData {
   base_model: string; parameters: number; per_device_train_batch_size: number
   gradient_accumulation_steps: number; effective_batch_size: number
@@ -31,6 +33,16 @@ function paramLabel(key: string): string {
   return labels[key] || key
 }
 
+const stagger = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.04 } },
+}
+
+const row = {
+  hidden: { opacity: 0, x: -12 },
+  visible: { opacity: 1, x: 0 },
+}
+
 function Hyperparams({ hyperparams }: { hyperparams: HyperparamsData | null }) {
   if (!hyperparams) return null
 
@@ -42,22 +54,34 @@ function Hyperparams({ hyperparams }: { hyperparams: HyperparamsData | null }) {
   ]
 
   return (
-    <section className="section">
+    <motion.section
+      className="section"
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-60px' }}
+      transition={{ duration: 0.5 }}
+    >
       <h2 className="section-title">Hyperparameters</h2>
-      <table className="params-table">
+      <motion.table
+        className="params-table"
+        variants={stagger}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true }}
+      >
         <tbody>
           {order.map(key => {
             const val = hyperparams[key as keyof HyperparamsData]
             return (
-              <tr key={key}>
+              <motion.tr key={key} variants={row}>
                 <td className="param-name">{paramLabel(key)}</td>
                 <td className="param-value">{formatParam(key, String(val ?? ''))}</td>
-              </tr>
+              </motion.tr>
             )
           })}
         </tbody>
-      </table>
-    </section>
+      </motion.table>
+    </motion.section>
   )
 }
 

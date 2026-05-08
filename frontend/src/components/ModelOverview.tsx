@@ -1,6 +1,14 @@
+import { motion } from 'motion/react'
+
 function ModelOverview() {
   return (
-    <section className="section">
+    <motion.section
+      className="section"
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-60px' }}
+      transition={{ duration: 0.5 }}
+    >
       <h2 className="section-title">Model Overview</h2>
       <div className="overview-grid">
         <div className="overview-text">
@@ -46,7 +54,7 @@ function ModelOverview() {
           </table>
         </div>
       </div>
-    </section>
+    </motion.section>
   )
 }
 

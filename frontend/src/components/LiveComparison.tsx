@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { motion, AnimatePresence } from 'motion/react'
 
 interface Result {
   baseline: { text: string; wer?: number; cer?: number; error_breakdown?: { substitutions: number; deletions: number; insertions: number; hits: number } }
@@ -32,7 +33,13 @@ function LiveComparison() {
   }
 
   return (
-    <section className="section">
+    <motion.section
+      className="section"
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-60px' }}
+      transition={{ duration: 0.5 }}
+    >
       <h2 className="section-title">Live Comparison: Baseline vs Fine-tuned</h2>
 
       <div className="upload-area">
@@ -49,59 +56,76 @@ function LiveComparison() {
         onChange={e => setReference(e.target.value)}
       />
 
-      {result && (
-        <div className="comparison-grid">
-          <div className="comparison-col">
-            <h3>Baseline <span className="model-tag">Zero-shot</span></h3>
-            <div className="transcription-box">{result.baseline.text}</div>
-            {result.baseline.wer != null && (
-              <div className="metrics-row">
-                <div className="metric-card small">
-                  <span className="metric-value small-val">{result.baseline.wer}%</span>
-                  <span className="metric-label">WER</span>
+      <AnimatePresence>
+        {result && (
+          <motion.div
+            className="comparison-grid"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+          >
+            <motion.div
+              className="comparison-col"
+              initial={{ x: -30, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.1, duration: 0.4 }}
+            >
+              <h3>Baseline <span className="model-tag">Zero-shot</span></h3>
+              <div className="transcription-box">{result.baseline.text}</div>
+              {result.baseline.wer != null && (
+                <div className="metrics-row">
+                  <div className="metric-card small">
+                    <span className="metric-value small-val">{result.baseline.wer}%</span>
+                    <span className="metric-label">WER</span>
+                  </div>
+                  <div className="metric-card small">
+                    <span className="metric-value small-val">{result.baseline.cer}%</span>
+                    <span className="metric-label">CER</span>
+                  </div>
                 </div>
-                <div className="metric-card small">
-                  <span className="metric-value small-val">{result.baseline.cer}%</span>
-                  <span className="metric-label">CER</span>
+              )}
+              {result.baseline.error_breakdown && (
+                <div className="breakdown-row">
+                  <span>S: {result.baseline.error_breakdown.substitutions}</span>
+                  <span>D: {result.baseline.error_breakdown.deletions}</span>
+                  <span>I: {result.baseline.error_breakdown.insertions}</span>
+                  <span>H: {result.baseline.error_breakdown.hits}</span>
                 </div>
-              </div>
-            )}
-            {result.baseline.error_breakdown && (
-              <div className="breakdown-row">
-                <span>S: {result.baseline.error_breakdown.substitutions}</span>
-                <span>D: {result.baseline.error_breakdown.deletions}</span>
-                <span>I: {result.baseline.error_breakdown.insertions}</span>
-                <span>H: {result.baseline.error_breakdown.hits}</span>
-              </div>
-            )}
-          </div>
-          <div className="comparison-col">
-            <h3>Fine-tuned <span className="model-tag fine-tuned">Our Model</span></h3>
-            <div className="transcription-box">{result.finetuned.text}</div>
-            {result.finetuned.wer != null && (
-              <div className="metrics-row">
-                <div className="metric-card small">
-                  <span className="metric-value small-val">{result.finetuned.wer}%</span>
-                  <span className="metric-label">WER</span>
+              )}
+            </motion.div>
+            <motion.div
+              className="comparison-col"
+              initial={{ x: 30, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
+            >
+              <h3>Fine-tuned <span className="model-tag fine-tuned">Our Model</span></h3>
+              <div className="transcription-box">{result.finetuned.text}</div>
+              {result.finetuned.wer != null && (
+                <div className="metrics-row">
+                  <div className="metric-card small">
+                    <span className="metric-value small-val">{result.finetuned.wer}%</span>
+                    <span className="metric-label">WER</span>
+                  </div>
+                  <div className="metric-card small">
+                    <span className="metric-value small-val">{result.finetuned.cer}%</span>
+                    <span className="metric-label">CER</span>
+                  </div>
                 </div>
-                <div className="metric-card small">
-                  <span className="metric-value small-val">{result.finetuned.cer}%</span>
-                  <span className="metric-label">CER</span>
+              )}
+              {result.finetuned.error_breakdown && (
+                <div className="breakdown-row">
+                  <span>S: {result.finetuned.error_breakdown.substitutions}</span>
+                  <span>D: {result.finetuned.error_breakdown.deletions}</span>
+                  <span>I: {result.finetuned.error_breakdown.insertions}</span>
+                  <span>H: {result.finetuned.error_breakdown.hits}</span>
                 </div>
-              </div>
-            )}
-            {result.finetuned.error_breakdown && (
-              <div className="breakdown-row">
-                <span>S: {result.finetuned.error_breakdown.substitutions}</span>
-                <span>D: {result.finetuned.error_breakdown.deletions}</span>
-                <span>I: {result.finetuned.error_breakdown.insertions}</span>
-                <span>H: {result.finetuned.error_breakdown.hits}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </section>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.section>
   )
 }
 

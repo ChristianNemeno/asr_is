@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import Hero from './components/Hero'
 import ModelOverview from './components/ModelOverview'
+import ModelComparison from './components/ModelComparison'
 import DatasetBrowser from './components/DatasetBrowser'
+import DataExploration from './components/DataExploration'
 import Hyperparams from './components/Hyperparams'
 import LiveComparison from './components/LiveComparison'
 import TrainingCurves from './components/TrainingCurves'
@@ -27,51 +29,85 @@ interface Metrics {
   n_samples: number
 }
 
+interface CurvePoint {
+  step: number
+  loss: number | null
+  eval_loss: number | null
+  eval_wer: number | null
+  eval_cer: number | null
+  learning_rate: number | null
+  grad_norm: number | null
+}
+
 interface SampleItem {
   filename: string; language: string; language_code: string
   label: string; duration_sec: number; url: string
 }
 
-interface Transcription {
-  rank: number; wer: number; cer: number; language: string
-  reference: string; prediction: string
+interface ComparisonRow {
+  rank: number; language: string; reference: string
+  baseline_prediction: string; baseline_wer: number; baseline_cer: number
+  finetuned_prediction: string; finetuned_wer: number; finetuned_cer: number
 }
 
 function App() {
   const [models, setModels] = useState<Models | null>(null)
   const [hyperparams, setHyperparams] = useState<HyperparamsData | null>(null)
   const [metrics, setMetrics] = useState<Metrics | null>(null)
+  const [curves, setCurves] = useState<CurvePoint[]>([])
   const [samples, setSamples] = useState<SampleItem[]>([])
-  const [transcriptions, setTranscriptions] = useState<Transcription[]>([])
+  const [comparisons, setComparisons] = useState<ComparisonRow[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchAll() {
-      const [mRes, hRes, metRes, _cRes, sRes, tRes] = await Promise.all([
-        fetch('/api/training/models').then(r => r.json()),
-        fetch('/api/training/hyperparams').then(r => r.json()),
-        fetch('/api/training/metrics').then(r => r.json()),
-        fetch('/api/training/curves').then(r => r.json()),
-        fetch('/api/samples').then(r => r.json()),
-        fetch('/api/training/samples').then(r => r.json()),
-      ])
-      setModels(mRes)
-      setHyperparams(hRes)
-      setMetrics(metRes)
-      setSamples(Array.isArray(sRes) ? sRes : [])
-      setTranscriptions(Array.isArray(tRes) ? tRes : [])
+      try {
+        const [mRes, hRes, metRes, cRes, sRes, cmpRes] = await Promise.all([
+          fetch('/api/training/models').then(r => r.json()),
+          fetch('/api/training/hyperparams').then(r => r.json()),
+          fetch('/api/training/metrics').then(r => r.json()),
+          fetch('/api/training/curves').then(r => r.json()),
+          fetch('/api/samples').then(r => r.json()),
+          fetch('/api/training/sample-comparison').then(r => r.json()),
+        ])
+        setModels(mRes)
+        setHyperparams(hRes)
+        setMetrics(metRes)
+        setCurves(Array.isArray(cRes) ? cRes : [])
+        setSamples(Array.isArray(sRes) ? sRes : [])
+        setComparisons(Array.isArray(cmpRes) ? cmpRes : [])
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoading(false)
+      }
     }
     fetchAll()
   }, [])
+
+  if (loading) {
+    return (
+      <div className="app loading-state">
+        <div className="skeleton-hero" />
+        <div className="skeleton-block" />
+        <div className="skeleton-block small" />
+        <div className="skeleton-block" />
+        <div className="skeleton-block small" />
+      </div>
+    )
+  }
 
   return (
     <div className="app">
       <Hero models={models} />
       <ModelOverview />
+      <ModelComparison />
       <DatasetBrowser samples={samples} />
+      <DataExploration />
       <Hyperparams hyperparams={hyperparams} />
       <LiveComparison />
-      <TrainingCurves />
-      <ErrorAnalysis metrics={metrics} transcriptions={transcriptions} />
+      <TrainingCurves curves={curves} />
+      <ErrorAnalysis metrics={metrics} comparisons={comparisons} />
     </div>
   )
 }

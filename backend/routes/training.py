@@ -62,12 +62,18 @@ async def get_hyperparams():
 async def get_metrics():
     test = _read_json("test_results.json")
     error = _read_json("error_analysis.json")
+    eb = error.get("error_breakdown", {})
     return {
         "test_wer": round(test.get("eval_wer", 0), 2),
         "test_cer": round(test.get("eval_cer", 0), 2),
         "train_steps": 5000,
         "per_language": error.get("per_language", {}),
-        "error_breakdown": error.get("error_breakdown", {}),
+        "error_breakdown": {
+            "substitutions": eb.get("total_s", 0),
+            "deletions": eb.get("total_d", 0),
+            "insertions": eb.get("total_i", 0),
+            "hits": eb.get("total_h", 0),
+        },
         "n_samples": error.get("n_samples", 0),
     }
 
@@ -107,5 +113,28 @@ async def get_sample_transcriptions():
                 "language": row.get("language", ""),
                 "reference": row.get("reference", ""),
                 "prediction": row.get("prediction", ""),
+            })
+    return rows
+
+
+@router.get("/sample-comparison")
+async def get_sample_comparison():
+    csv_path = os.path.join(OUTPUT_DIR, "sample_comparison.csv")
+    if not os.path.isfile(csv_path):
+        return JSONResponse({"error": "sample_comparison.csv not found"}, status_code=404)
+
+    rows = []
+    with open(csv_path) as f:
+        for row in csv.DictReader(f):
+            rows.append({
+                "rank": int(row.get("rank", 0)),
+                "language": row.get("language", ""),
+                "reference": row.get("reference", ""),
+                "baseline_prediction": row.get("baseline_prediction", ""),
+                "baseline_wer": round(float(row.get("baseline_wer", 0)), 2),
+                "baseline_cer": round(float(row.get("baseline_cer", 0)), 2),
+                "finetuned_prediction": row.get("finetuned_prediction", ""),
+                "finetuned_wer": round(float(row.get("finetuned_wer", 0)), 2),
+                "finetuned_cer": round(float(row.get("finetuned_cer", 0)), 2),
             })
     return rows

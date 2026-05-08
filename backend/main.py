@@ -4,6 +4,7 @@ from routes.transcribe import router as transcribe_router
 from routes.training import router as training_router
 from routes.samples import router as samples_router
 from routes.plots import router as plots_router
+from routes.data_exploration import router as data_exploration_router
 
 app = FastAPI(title="Cebuano ASR Training Showcase", version="2.0.0")
 
@@ -17,6 +18,7 @@ app.add_middleware(
 
 app.include_router(transcribe_router)
 app.include_router(training_router)
+app.include_router(data_exploration_router)
 app.include_router(samples_router)
 app.include_router(plots_router)
 
