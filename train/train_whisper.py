@@ -41,7 +41,6 @@ class MetricsCSVCallback(TrainerCallback):
     def __init__(self, output_path: str):
         self.output_path = output_path
         self._rows: list[dict] = []
-        self._header = None
 
     def on_log(self, args, state, control, logs=None, **kwargs):
         if logs is None:
@@ -50,14 +49,15 @@ class MetricsCSVCallback(TrainerCallback):
         for key in ("loss", "grad_norm", "learning_rate", "eval_loss", "eval_wer", "eval_cer"):
             if key in logs:
                 row[key] = round(logs[key], 6) if isinstance(logs[key], float) else logs[key]
-        if self._header is None:
-            self._header = list(row.keys())
         self._rows.append(row)
 
     def on_train_end(self, args, state, control, **kwargs):
         if not self._rows:
             return
-        header = self._header or list(self._rows[0].keys())
+        all_keys = set()
+        for r in self._rows:
+            all_keys.update(r.keys())
+        header = ["step", "epoch"] + sorted(k for k in all_keys if k not in ("step", "epoch"))
         with open(self.output_path, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=header, extrasaction="ignore")
             writer.writeheader()

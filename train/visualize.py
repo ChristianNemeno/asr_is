@@ -63,7 +63,7 @@ def load_from_csv(output_dir: str) -> dict | None:
                 try:
                     data[key].append(float(val))
                 except (ValueError, TypeError):
-                    data[key].append(val)
+                    data[key].append(np.nan)
     return data if data else None
 
 
@@ -105,7 +105,7 @@ def _first_valid(xs, keys):
 def _clean(x, y):
     """Return (x, y) with NaN entries removed."""
     mask = np.isfinite(y) if hasattr(np, "isfinite") else [yy is not None and yy == yy for yy in y]
-    return [xv for xv, m in zip(x, y) if m], [yv for yv, m in zip(y, y) if m]
+    return [xv for xv, m in zip(x, mask) if m], [yv for yv, m in zip(y, mask) if m]
 
 
 def plot_training_curves(data: dict, out_dir: str):
