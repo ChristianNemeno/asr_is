@@ -25,7 +25,7 @@ interface ComparisonRow {
 const breakdownColors: Record<string, string> = {
   Substitutions: '#f87171',
   Deletions: '#60a5fa',
-  Insertions: '#4ade80',
+  Insertions: '#e0e0e0',
   Hits: '#94a3b8',
 }
 
@@ -90,29 +90,26 @@ function ComparisonRow({ c }: { c: ComparisonRow }) {
 function ErrorAnalysis({
   metrics,
   comparisons,
+  section = 'all',
 }: {
   metrics: Metrics | null
   comparisons: ComparisonRow[]
+  section?: 'all' | 'stats' | 'charts' | 'table'
 }) {
+  const showAll = section === 'all'
   return (
-    <motion.section
-      className="section"
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.5 }}
-    >
+    <section className="section">
       <h2 className="section-title">Error Analysis</h2>
 
-      {metrics && (
+      {metrics && (showAll || section === 'stats') && (
         <div className="error-stats">
           <div className="stat-cards mini">
             <div className="stat-card">
-              <span className="stat-value">{metrics.per_language?.tagalog?.mean_wer?.toFixed(1)}%</span>
+              <span className="stat-value">{(metrics.per_language?.tagalog?.mean_wer * 100)?.toFixed(1)}%</span>
               <span className="stat-label">Tagalog WER</span>
             </div>
             <div className="stat-card">
-              <span className="stat-value">{metrics.per_language?.cebuano?.mean_wer?.toFixed(1)}%</span>
+              <span className="stat-value">{(metrics.per_language?.cebuano?.mean_wer * 100)?.toFixed(1)}%</span>
               <span className="stat-label">Cebuano WER</span>
             </div>
             <div className="stat-card">
@@ -123,6 +120,7 @@ function ErrorAnalysis({
         </div>
       )}
 
+      {(showAll || section === 'charts') && (
       <div className="chart-grid">
         {metrics?.per_language && (
           <div className="chart-card">
@@ -134,7 +132,7 @@ function ErrorAnalysis({
                   wer: v.mean_wer * 100,
                   n: v.n,
                 }))}
-                margin={{ top: 4, right: 4, bottom: 4, left: 4 }}
+                margin={{ top: 10, right: 30, bottom: 10, left: 30 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
                 <XAxis dataKey="language" stroke="#555" tick={{ fontSize: 12 }} />
@@ -164,7 +162,7 @@ function ErrorAnalysis({
                   { label: 'Insertions', value: metrics.error_breakdown.insertions },
                   { label: 'Hits', value: metrics.error_breakdown.hits },
                 ]}
-                margin={{ top: 4, right: 4, bottom: 4, left: 4 }}
+                margin={{ top: 10, right: 30, bottom: 10, left: 30 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
                 <XAxis dataKey="label" stroke="#555" tick={{ fontSize: 12 }} />
@@ -182,8 +180,9 @@ function ErrorAnalysis({
           </div>
         )}
       </div>
+      )}
 
-      {comparisons.length > 0 && (
+      {(showAll || section === 'table') && comparisons.length > 0 && (
         <>
           <h3 className="subsection-title">Sample Comparison: Baseline vs Fine-tuned</h3>
           <p className="section-desc">
@@ -211,7 +210,7 @@ function ErrorAnalysis({
           </div>
         </>
       )}
-    </motion.section>
+    </section>
   )
 }
 

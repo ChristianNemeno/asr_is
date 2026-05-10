@@ -1,13 +1,5 @@
 import { useState, useEffect } from 'react'
-import Hero from './components/Hero'
-import ModelOverview from './components/ModelOverview'
-import ModelComparison from './components/ModelComparison'
-import DatasetBrowser from './components/DatasetBrowser'
-import DataExploration from './components/DataExploration'
-import Hyperparams from './components/Hyperparams'
-import LiveComparison from './components/LiveComparison'
-import TrainingCurves from './components/TrainingCurves'
-import ErrorAnalysis from './components/ErrorAnalysis'
+import Presentation from './components/Presentation'
 
 interface Models {
   baseline: { id: string; parameters: number; architecture: string; task: string }
@@ -87,7 +79,7 @@ function App() {
 
   if (loading) {
     return (
-      <div className="app loading-state">
+      <div className="loading-state">
         <div className="skeleton-hero" />
         <div className="skeleton-block" />
         <div className="skeleton-block small" />
@@ -98,17 +90,14 @@ function App() {
   }
 
   return (
-    <div className="app">
-      <Hero models={models} />
-      <ModelOverview />
-      <ModelComparison />
-      <DatasetBrowser samples={samples} />
-      <DataExploration />
-      <Hyperparams hyperparams={hyperparams} />
-      <LiveComparison />
-      <TrainingCurves curves={curves} />
-      <ErrorAnalysis metrics={metrics} comparisons={comparisons} />
-    </div>
+    <Presentation
+      models={models}
+      hyperparams={hyperparams}
+      metrics={metrics}
+      curves={curves}
+      samples={samples}
+      comparisons={comparisons}
+    />
   )
 }
 

@@ -112,7 +112,7 @@ def main():
         sample = test[idx]
         audio = sample["audio"]
         ref = sample["text"]
-        lang = sample.get("language", "tagalog")
+        lang = sample.get("language") or "tagalog"
 
         input_features = processor_base.feature_extractor(
             audio["array"], sampling_rate=audio["sampling_rate"], return_tensors="pt"
@@ -122,12 +122,12 @@ def main():
             pred_base = model_base.generate(input_features)
             pred_ft = model_ft.generate(input_features)
 
-        text_base = processor_base.tokenizer.batch_decode(
+        text_base = norm(processor_base.tokenizer.batch_decode(
             pred_base, skip_special_tokens=True
-        )[0]
-        text_ft = processor_ft.tokenizer.batch_decode(
+        )[0])
+        text_ft = norm(processor_ft.tokenizer.batch_decode(
             pred_ft, skip_special_tokens=True
-        )[0]
+        )[0])
 
         bw = wer_m.compute(predictions=[text_base], references=[ref])
         bc = cer_m.compute(predictions=[text_base], references=[ref])

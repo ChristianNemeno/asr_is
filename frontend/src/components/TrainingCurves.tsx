@@ -1,4 +1,3 @@
-import { motion } from 'motion/react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend,
@@ -18,29 +17,25 @@ const chartColors = {
   loss: '#60a5fa',
   evalLoss: '#f59e0b',
   wer: '#f87171',
-  cer: '#4ade80',
+  cer: '#e0e0e0',
   lr: '#a78bfa',
   grad: '#94a3b8',
 }
 
-function TrainingCurves({ curves }: { curves: CurvePoint[] }) {
+function TrainingCurves({ curves, section = 'all' }: { curves: CurvePoint[]; section?: 'all' | 'loss' | 'wercer' | 'lr' | 'gradnorm' }) {
+  const showAll = section === 'all'
   if (!curves.length) return null
 
   return (
-    <motion.section
-      className="section"
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.5 }}
-    >
+    <section className="section">
       <h2 className="section-title">Training Curves</h2>
 
       <div className="chart-grid">
+        {(showAll || section === 'loss') && (
         <div className="chart-card">
           <h3 className="chart-title">Loss</h3>
           <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={curves} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+            <LineChart data={curves} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
               <XAxis dataKey="step" stroke="#555" tick={{ fontSize: 11 }} />
               <YAxis stroke="#555" tick={{ fontSize: 11 }} />
@@ -54,11 +49,13 @@ function TrainingCurves({ curves }: { curves: CurvePoint[] }) {
             </LineChart>
           </ResponsiveContainer>
         </div>
+        )}
 
+        {(showAll || section === 'wercer') && (
         <div className="chart-card">
           <h3 className="chart-title">WER / CER</h3>
           <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={curves} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+            <LineChart data={curves} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
               <XAxis dataKey="step" stroke="#555" tick={{ fontSize: 11 }} />
               <YAxis stroke="#555" tick={{ fontSize: 11 }} />
@@ -72,11 +69,13 @@ function TrainingCurves({ curves }: { curves: CurvePoint[] }) {
             </LineChart>
           </ResponsiveContainer>
         </div>
+        )}
 
+        {(showAll || section === 'lr') && (
         <div className="chart-card">
           <h3 className="chart-title">Learning Rate Schedule</h3>
           <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={curves} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+            <LineChart data={curves} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
               <XAxis dataKey="step" stroke="#555" tick={{ fontSize: 11 }} />
               <YAxis stroke="#555" tick={{ fontSize: 11 }} tickFormatter={v => `${(v * 1e6).toFixed(0)}e-6`} />
@@ -88,11 +87,13 @@ function TrainingCurves({ curves }: { curves: CurvePoint[] }) {
             </LineChart>
           </ResponsiveContainer>
         </div>
+        )}
 
+        {(showAll || section === 'gradnorm') && (
         <div className="chart-card">
           <h3 className="chart-title">Gradient Norm</h3>
           <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={curves} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+            <LineChart data={curves} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
               <XAxis dataKey="step" stroke="#555" tick={{ fontSize: 11 }} />
               <YAxis stroke="#555" tick={{ fontSize: 11 }} />
@@ -104,8 +105,9 @@ function TrainingCurves({ curves }: { curves: CurvePoint[] }) {
             </LineChart>
           </ResponsiveContainer>
         </div>
+        )}
       </div>
-    </motion.section>
+    </section>
   )
 }
 

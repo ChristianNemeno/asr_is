@@ -1,9 +1,8 @@
-import { motion } from 'motion/react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
 const barColors = {
   baseline: '#60a5fa',
-  finetuned: '#4ade80',
+  finetuned: '#e0e0e0',
 }
 
 function ModelComparison() {
@@ -13,20 +12,14 @@ function ModelComparison() {
   ]
 
   return (
-    <motion.section
-      className="section"
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.5 }}
-    >
+    <section className="section">
       <h2 className="section-title">Model Comparison</h2>
 
       <div className="chart-grid single-col">
         <div className="chart-card">
           <h3 className="chart-title">Baseline (zero-shot) vs Fine-tuned</h3>
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={data} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+            <BarChart data={data} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
               <XAxis dataKey="metric" stroke="#555" tick={{ fontSize: 13 }} />
               <YAxis stroke="#555" tick={{ fontSize: 11 }} unit="%" />
@@ -43,7 +36,7 @@ function ModelComparison() {
       </div>
 
 
-    </motion.section>
+    </section>
   )
 }
 

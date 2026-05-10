@@ -1,0 +1,286 @@
+/* ── Slide Card ──────────────────────── */
+
+.slide-card {
+  width: min(70%, 1000px);
+  margin: 0 auto;
+  background: #0a0a0a;
+  border: 1px solid #1c1c1c;
+  border-radius: 16px;
+  position: relative;
+  z-index: 1;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.slide-card .section-title {
+  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.slide-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.75rem 2rem 0;
+  flex-shrink: 0;
+}
+
+.slide-card-body {
+  display: flex;
+  gap: 1rem;
+  padding: 1.25rem 2rem 2rem;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.slide-card-inner {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Slide card glow border */
+.slide-card.glow-border::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--angle),
+    transparent 35%,
+    rgba(255, 255, 255, 0.05) 42%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0.05) 58%,
+    transparent 65%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: glow-rotate 4s linear infinite, glow-pulse 3s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ── Sub-section ─────────────────────── */
+
+.sub-section-title {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.85rem;
+  color: #777;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sub-section-counter {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.75rem;
+  color: #555;
+  white-space: nowrap;
+}
+
+/* ── Sub-section Nav Dots (vertical) ─── */
+
+.sub-section-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 0.25rem 0;
+  flex-shrink: 0;
+}
+
+.sub-section-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  border-radius: 50%;
+  background: #3a3a3a;
+  border: 1px solid #555;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+  outline: none;
+}
+
+.sub-section-dot:hover {
+  background: #555;
+  border-color: #777;
+}
+
+.sub-section-dot.active {
+  background: #ffffff;
+  border-color: #ffffff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
+}
+
+/* Remove default section spacing inside card */
+.slide-card-inner .section {
+  margin-bottom: 0;
+}
+
+/* ── Swiper Container ─────────────────── */
+
+.presentation-swiper {
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(135deg, #000000 0%, #050505 40%, #0a0a0a 70%, #020202 100%);
+}
+
+.presentation-swiper .swiper-slide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+}
+
+/* ── Pagination Dots ──────────────────── */
+
+.presentation-swiper .swiper-pagination {
+  bottom: 28px !important;
+}
+
+.presentation-swiper .swiper-pagination-bullet {
+  width: 10px;
+  height: 10px;
+  background: #3a3a3a;
+  border: 1px solid #555;
+  opacity: 1;
+  transition: all 0.3s ease;
+  margin: 0 6px !important;
+}
+
+.presentation-swiper .swiper-pagination-bullet:hover {
+  background: #555;
+  border-color: #777;
+}
+
+.presentation-swiper .swiper-pagination-bullet-active {
+  background: #ffffff;
+  border-color: #ffffff;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.25),
+              0 0 4px rgba(255, 255, 255, 0.1);
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes dot-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(255, 255, 255, 0.15), 0 0 3px rgba(255, 255, 255, 0.08); }
+  50%      { box-shadow: 0 0 18px rgba(255, 255, 255, 0.35), 0 0 6px rgba(255, 255, 255, 0.18); }
+}
+
+/* ── Navigation Arrows (hidden by default, show on hover) ── */
+
+.presentation-swiper .swiper-button-prev,
+.presentation-swiper .swiper-button-next {
+  color: rgba(255, 255, 255, 0.3);
+  opacity: 0;
+  transition: opacity 0.3s ease, color 0.3s ease;
+  width: 48px;
+  height: 48px;
+  margin-top: -24px;
+}
+
+.presentation-swiper:hover .swiper-button-prev,
+.presentation-swiper:hover .swiper-button-next {
+  opacity: 1;
+}
+
+.presentation-swiper .swiper-button-prev:hover,
+.presentation-swiper .swiper-button-next:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.presentation-swiper .swiper-button-prev::after,
+.presentation-swiper .swiper-button-next::after {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+/* ── Glow Border Animation ────────────── */
+
+.presentation-swiper .stat-card,
+.presentation-swiper .chart-card,
+.presentation-swiper .overview-table-wrap,
+.presentation-swiper .sample-table-wrap,
+.presentation-swiper .comparison-col {
+  position: relative;
+  z-index: 1;
+}
+
+.presentation-swiper .stat-card::after,
+.presentation-swiper .chart-card::after,
+.presentation-swiper .overview-table-wrap::after,
+.presentation-swiper .sample-table-wrap::after,
+.presentation-swiper .comparison-col::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--angle),
+    transparent 35%,
+    rgba(255, 255, 255, 0.05) 42%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0.05) 58%,
+    transparent 65%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: glow-rotate 4s linear infinite, glow-pulse 3s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ── Scrollbar inside slides ──────────── */
+
+.presentation-swiper .swiper-slide::-webkit-scrollbar {
+  width: 6px;
+}
+
+.presentation-swiper .swiper-slide::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.presentation-swiper .swiper-slide::-webkit-scrollbar-thumb {
+  background: #1a1a1a;
+  border-radius: 3px;
+}
+
+.presentation-swiper .swiper-slide::-webkit-scrollbar-thumb:hover {
+  background: #2a2a2a;
+}
+
+/* ── Responsive ───────────────────────── */
+
+@media (max-width: 768px) {
+  .slide-card {
+    width: 92%;
+    max-height: 86vh;
+  }
+
+  .slide-card-header {
+    padding: 1.25rem 1.25rem 0;
+  }
+
+  .slide-card-body {
+    padding: 1rem 1.25rem 1.25rem;
+  }
+
+  .presentation-swiper .swiper-pagination {
+    bottom: 16px !important;
+  }
+
+  .presentation-swiper .swiper-pagination-bullet {
+    width: 8px;
+    height: 8px;
+    margin: 0 4px !important;
+  }
+}

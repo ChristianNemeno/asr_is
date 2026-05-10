@@ -6,7 +6,8 @@ interface Result {
   finetuned: { text: string; wer?: number; cer?: number; error_breakdown?: { substitutions: number; deletions: number; insertions: number; hits: number } }
 }
 
-function LiveComparison() {
+function LiveComparison({ section = 'all' }: { section?: 'all' | 'upload' | 'results' }) {
+  const showAll = section === 'all'
   const [result, setResult] = useState<Result | null>(null)
   const [loading, setLoading] = useState(false)
   const [reference, setReference] = useState('')
@@ -33,16 +34,12 @@ function LiveComparison() {
   }
 
   return (
-    <motion.section
-      className="section"
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.5 }}
-    >
+    <section className="section">
       <h2 className="section-title">Live Comparison: Baseline vs Fine-tuned</h2>
 
-      <div className="upload-area">
+      {(showAll || section === 'upload') && (
+      <>
+        <div className="upload-area">
         <input type="file" ref={fileRef} accept="audio/*" disabled={loading} />
         <button onClick={handleTranscribe} disabled={loading || !fileRef.current?.files?.length}>
           {loading ? 'Transcribing...' : 'Transcribe Both'}
@@ -51,10 +48,13 @@ function LiveComparison() {
       <textarea
         className="ref-input"
         placeholder="Reference text (optional — for WER/CER comparison)"
-        rows={2}
-        value={reference}
-        onChange={e => setReference(e.target.value)}
-      />
+          rows={2}
+          value={reference}
+          onChange={e => setReference(e.target.value)}
+        />
+      </>
+      )}
+      {(showAll || section === 'results') && (
 
       <AnimatePresence>
         {result && (
@@ -125,7 +125,8 @@ function LiveComparison() {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.section>
+      )}
+    </section>
   )
 }
 

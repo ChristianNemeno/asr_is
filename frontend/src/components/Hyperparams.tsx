@@ -54,20 +54,13 @@ function Hyperparams({ hyperparams }: { hyperparams: HyperparamsData | null }) {
   ]
 
   return (
-    <motion.section
-      className="section"
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.5 }}
-    >
+    <section className="section">
       <h2 className="section-title">Hyperparameters</h2>
       <motion.table
         className="params-table"
         variants={stagger}
         initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true }}
+        animate="visible"
       >
         <tbody>
           {order.map(key => {
@@ -81,7 +74,7 @@ function Hyperparams({ hyperparams }: { hyperparams: HyperparamsData | null }) {
           })}
         </tbody>
       </motion.table>
-    </motion.section>
+    </section>
   )
 }
 

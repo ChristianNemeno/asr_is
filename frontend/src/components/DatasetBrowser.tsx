@@ -8,7 +8,7 @@ interface Sample {
 }
 
 const pieData = [
-  { name: 'FSC (Tagalog)', value: 203000, color: '#4ade80' },
+  { name: 'FSC (Tagalog)', value: 203000, color: '#e0e0e0' },
   { name: 'FLEURS Tagalog', value: 1800, color: '#60a5fa' },
   { name: 'FLEURS Cebuano', value: 1800, color: '#a78bfa' },
 ]
@@ -23,7 +23,8 @@ const rowAnim = {
   visible: { opacity: 1, x: 0 },
 }
 
-function DatasetBrowser({ samples }: { samples: Sample[] }) {
+function DatasetBrowser({ samples, section = 'all' }: { samples: Sample[]; section?: 'all' | 'samples' | 'composition' | 'splits' }) {
+  const showAll = section === 'all'
   const [filter, setFilter] = useState('All')
   const [playing, setPlaying] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -47,18 +48,16 @@ function DatasetBrowser({ samples }: { samples: Sample[] }) {
   if (!samples.length) return null
 
   return (
-    <motion.section
-      className="section"
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.5 }}
-    >
+    <section className="section">
       <h2 className="section-title">Dataset Samples</h2>
-      <p className="section-desc">
-        40 audio samples from FLEURS (20 Tagalog, 20 Cebuano) used as test/evaluation references.
-      </p>
+      {(showAll || section === 'samples') && (
+        <p className="section-desc">
+          40 audio samples from FLEURS (20 Tagalog, 20 Cebuano) used as test/evaluation references.
+        </p>
+      )}
 
+      {(showAll || section === 'samples') && (
+      <>
       <div className="filter-tabs">
         {languages.map(lang => (
           <button
@@ -93,8 +92,12 @@ function DatasetBrowser({ samples }: { samples: Sample[] }) {
           </motion.div>
         ))}
       </motion.div>
+      </>
+      )}
 
+      {(showAll || section === 'composition' || section === 'splits') && (
       <div className="chart-grid single-col">
+        {(showAll || section === 'composition') && (
         <div className="chart-card">
           <h3 className="chart-title">Full Training Dataset Composition</h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -118,7 +121,8 @@ function DatasetBrowser({ samples }: { samples: Sample[] }) {
             </PieChart>
           </ResponsiveContainer>
         </div>
-
+        )}
+        {(showAll || section === 'splits') && (
         <div className="chart-card">
           <h3 className="chart-title">Dataset Splits by Source</h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -128,7 +132,7 @@ function DatasetBrowser({ samples }: { samples: Sample[] }) {
                 { split: 'Validation', 'FSC': 18000, 'FLEURS Tagalog': 400, 'FLEURS Cebuano': 400 },
                 { split: 'Test', 'FSC': 20000, 'FLEURS Tagalog': 400, 'FLEURS Cebuano': 400 },
               ]}
-              margin={{ top: 4, right: 4, bottom: 4, left: 4 }}
+              margin={{ top: 10, right: 30, bottom: 10, left: 30 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" />
               <XAxis dataKey="split" stroke="#555" tick={{ fontSize: 12 }} />
@@ -138,14 +142,16 @@ function DatasetBrowser({ samples }: { samples: Sample[] }) {
                 formatter={(v) => [`${Number(v).toLocaleString()} samples`]}
               />
               <Legend />
-              <Bar dataKey="FSC" stackId="s" fill="#4ade80" name="FSC (Tagalog)" radius={[0, 0, 0, 0]} />
+              <Bar dataKey="FSC" stackId="s" fill="#e0e0e0" name="FSC (Tagalog)" radius={[0, 0, 0, 0]} />
               <Bar dataKey="FLEURS Tagalog" stackId="s" fill="#60a5fa" name="FLEURS Tagalog" />
               <Bar dataKey="FLEURS Cebuano" stackId="s" fill="#a78bfa" name="FLEURS Cebuano" />
             </BarChart>
           </ResponsiveContainer>
         </div>
+        )}
       </div>
-    </motion.section>
+      )}
+    </section>
   )
 }
 
