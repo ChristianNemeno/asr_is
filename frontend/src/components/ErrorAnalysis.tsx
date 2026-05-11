@@ -16,10 +16,18 @@ interface Metrics {
   n_samples: number
 }
 
+export interface WordAlignment {
+  type: 'hit' | 'substitution' | 'insertion' | 'deletion'
+  ref_word: string | null
+  hyp_word: string | null
+}
+
 interface ComparisonRow {
   rank: number; language: string; reference: string
   baseline_prediction: string; baseline_wer: number; baseline_cer: number
+  baseline_alignment?: WordAlignment[]
   finetuned_prediction: string; finetuned_wer: number; finetuned_cer: number
+  finetuned_alignment?: WordAlignment[]
 }
 
 const breakdownColors: Record<string, string> = {
@@ -27,6 +35,48 @@ const breakdownColors: Record<string, string> = {
   Deletions: '#60a5fa',
   Insertions: '#e0e0e0',
   Hits: '#94a3b8',
+}
+
+const wordClass: Record<string, string> = {
+  hit: 'wd-hit',
+  substitution: 'wd-sub',
+  deletion: 'wd-del',
+  insertion: 'wd-ins',
+}
+
+function WordDiff({ alignment }: { alignment: WordAlignment[] }) {
+  if (!alignment || alignment.length === 0) return <p className="wd-empty">—</p>
+
+  return (
+    <div className="wd-container">
+      <div className="wd-line wd-ref-line">
+        <span className="wd-line-label">Ref</span>
+        {alignment.map((w, i) => (
+          <span key={i} className={`wd-token ${wordClass[w.type]}`}>
+            {w.type === 'deletion' ? (
+              <span className="wd-strike">{w.ref_word}</span>
+            ) : w.type === 'insertion' ? (
+              <span className="wd-empty-slot">·</span>
+            ) : (
+              w.ref_word
+            )}
+          </span>
+        ))}
+      </div>
+      <div className="wd-line wd-hyp-line">
+        <span className="wd-line-label">Hyp</span>
+        {alignment.map((w, i) => (
+          <span key={i} className={`wd-token ${wordClass[w.type]}`}>
+            {w.type === 'deletion' ? (
+              <span className="wd-empty-slot">·</span>
+            ) : (
+              w.hyp_word
+            )}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 function ComparisonRow({ c }: { c: ComparisonRow }) {
@@ -64,7 +114,11 @@ function ComparisonRow({ c }: { c: ComparisonRow }) {
                 </div>
                 <div className="expand-col baseline-col">
                   <span className="expand-label">Baseline <span className="model-tag">zero-shot</span></span>
-                  <p>{c.baseline_prediction}</p>
+                  {c.baseline_alignment ? (
+                    <WordDiff alignment={c.baseline_alignment} />
+                  ) : (
+                    <p>{c.baseline_prediction}</p>
+                  )}
                   <div className="expand-metrics">
                     <span>WER: <strong>{c.baseline_wer.toFixed(1)}%</strong></span>
                     <span>CER: <strong>{c.baseline_cer.toFixed(1)}%</strong></span>
@@ -72,7 +126,11 @@ function ComparisonRow({ c }: { c: ComparisonRow }) {
                 </div>
                 <div className="expand-col finetuned-col">
                   <span className="expand-label">Fine-tuned <span className="model-tag fine-tuned">our model</span></span>
-                  <p>{c.finetuned_prediction}</p>
+                  {c.finetuned_alignment ? (
+                    <WordDiff alignment={c.finetuned_alignment} />
+                  ) : (
+                    <p>{c.finetuned_prediction}</p>
+                  )}
                   <div className="expand-metrics">
                     <span>WER: <strong>{c.finetuned_wer.toFixed(1)}%</strong></span>
                     <span>CER: <strong>{c.finetuned_cer.toFixed(1)}%</strong></span>

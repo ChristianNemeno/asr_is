@@ -36,10 +36,18 @@ interface SampleItem {
   label: string; duration_sec: number; url: string
 }
 
+export interface WordAlignment {
+  type: 'hit' | 'substitution' | 'insertion' | 'deletion'
+  ref_word: string | null
+  hyp_word: string | null
+}
+
 interface ComparisonRow {
   rank: number; language: string; reference: string
   baseline_prediction: string; baseline_wer: number; baseline_cer: number
+  baseline_alignment?: WordAlignment[]
   finetuned_prediction: string; finetuned_wer: number; finetuned_cer: number
+  finetuned_alignment?: WordAlignment[]
 }
 
 function App() {

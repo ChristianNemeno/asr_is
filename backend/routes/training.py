@@ -5,6 +5,8 @@ import os
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
+from services.metrics import word_alignments
+
 router = APIRouter(prefix="/api/training", tags=["training"])
 
 OUTPUT_DIR = os.path.join("..", "train", "output", "whisper")
@@ -126,15 +128,20 @@ async def get_sample_comparison():
     rows = []
     with open(csv_path) as f:
         for row in csv.DictReader(f):
+            ref = row.get("reference", "")
+            bl_pred = row.get("baseline_prediction", "")
+            ft_pred = row.get("finetuned_prediction", "")
             rows.append({
                 "rank": int(row.get("rank", 0)),
                 "language": row.get("language", ""),
-                "reference": row.get("reference", ""),
-                "baseline_prediction": row.get("baseline_prediction", ""),
+                "reference": ref,
+                "baseline_prediction": bl_pred,
                 "baseline_wer": round(float(row.get("baseline_wer", 0)), 2),
                 "baseline_cer": round(float(row.get("baseline_cer", 0)), 2),
-                "finetuned_prediction": row.get("finetuned_prediction", ""),
+                "baseline_alignment": word_alignments(ref, bl_pred) if ref and bl_pred else [],
+                "finetuned_prediction": ft_pred,
                 "finetuned_wer": round(float(row.get("finetuned_wer", 0)), 2),
                 "finetuned_cer": round(float(row.get("finetuned_cer", 0)), 2),
+                "finetuned_alignment": word_alignments(ref, ft_pred) if ref and ft_pred else [],
             })
     return rows
